@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.core.config import get_settings
-from app.routers import health, profiles, repositories
+from app.routers import health, profiles, repositories, sandboxes
 
 settings = get_settings()
 
@@ -13,6 +13,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(repositories.router)
 app.include_router(profiles.router)
+app.include_router(sandboxes.router)
 
 
 @app.get("/")
