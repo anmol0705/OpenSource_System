@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI  # type: ignore
 
 from app.core.config import get_settings
 from app.routers import health
