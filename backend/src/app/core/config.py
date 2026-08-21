@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     # LLM provider (kept provider-neutral — see Phase 4)
     anthropic_api_key: str = ""
+    openrouter_api_key: str = ""
 
 
 @lru_cache
