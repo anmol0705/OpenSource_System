@@ -71,6 +71,21 @@ class Sandbox:
         exit_code, output = self.run(test_command)
         return exit_code == 0, output
 
+    def list_source_files(self, extensions: list[str] | None = None) -> list[str]:
+        """List source files in the repo, respecting .gitignore automatically
+        (ripgrep does this by default — that's part of why we use it over
+        a naive `find`, which would happily list node_modules, venv, etc.)
+        """
+        if extensions is None:
+            extensions = ["py", "js", "ts", "jsx", "tsx"]
+
+        type_flags = " ".join(f"-g '*.{ext}'" for ext in extensions)
+        exit_code, output = self.run(f"rg --files {type_flags}", workdir="/workspace/repo")
+
+        if exit_code != 0:
+            return []
+        return [line for line in output.strip().split("\n") if line]
+
 
 class SandboxManager:
     """Creates and tracks isolated Sandbox instances. This is the ONLY

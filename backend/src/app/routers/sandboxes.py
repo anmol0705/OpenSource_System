@@ -4,6 +4,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.core.code_analysis import build_repository_map
 from app.core.sandbox import SandboxManager, get_sandbox_manager
 
 router = APIRouter(prefix="/sandboxes", tags=["sandboxes"])
@@ -47,3 +48,19 @@ async def destroy_sandbox(
 ) -> dict[str, str]:
     manager.destroy(workspace_id)
     return {"status": "destroyed"}
+
+
+@router.get("/{workspace_id}/repo-map")
+async def get_repo_map(
+    workspace_id: uuid.UUID,
+    manager: Annotated[SandboxManager, Depends(get_sandbox_manager)],
+) -> dict[str, Any]:
+    sandbox = manager.get(workspace_id)
+    if sandbox is None:
+        raise HTTPException(status_code=404, detail="Sandbox not found")
+
+    repo_map = build_repository_map(sandbox)
+    return {
+        "file_count": len(repo_map.files),
+        "summary": repo_map.summary(),
+    }
