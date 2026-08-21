@@ -40,6 +40,8 @@ def test_investigator_stops_at_max_iterations_if_never_confident(mock_get_llm: M
         "confidence": 0.0,
         "iteration": 0,
         "history": [],
+        "file_histories": {},
+        "check_history": False,
     }
 
     result = graph.invoke(initial_state)
@@ -72,6 +74,8 @@ def test_investigator_forces_at_least_one_inspection(mock_get_llm: MagicMock) ->
         "confidence": 0.0,
         "iteration": 0,
         "history": [],
+        "file_histories": {},
+        "check_history": False,
     }
 
     result = graph.invoke(initial_state)

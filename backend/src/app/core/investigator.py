@@ -12,24 +12,27 @@ MAX_ITERATIONS = 5
 
 
 class Hypothesis(BaseModel):
-    """The exact shape we force the LLM's response into. Instead of
-    parsing free text, LangChain makes the model return JSON matching
-    this schema — reliable, no string-parsing guesswork.
-    """
-
     reasoning: str = Field(description="Brief explanation of your current thinking")
     target_file: str = Field(description="The single file path most likely to contain the bug")
     confidence: float = Field(description="0.0 to 1.0 — how confident you are this is correct")
+    check_history: bool = Field(
+        default=False,
+        description="Set true if seeing this file's commit history would help you form a "
+        "better hypothesis — e.g. if the current code looks intentional/unusual and you "
+        "want to know WHY it's written this way, or whether this bug was fixed before.",
+    )
 
 
 class InvestigationState(TypedDict):
     issue_title: str
     issue_body: str
     repo_map_summary: str
-    inspected_files: dict[str, str]  # path -> content, grows each loop
+    inspected_files: dict[str, str]
+    file_histories: dict[str, str]
     hypothesis: str
     target_file: str
     confidence: float
+    check_history: bool
     iteration: int
     history: list[str]
 
@@ -47,6 +50,10 @@ def make_form_hypothesis_node() -> Any:
             f"--- {path} ---\n{content[:3000]}"
             for path, content in state["inspected_files"].items()
         )
+        history_summary = "\n\n".join(
+            f"--- git history for {path} ---\n{log}"
+            for path, log in state["file_histories"].items()
+        )
 
         prompt = f"""You are investigating a bug report to find where it likely originates.
 
@@ -59,9 +66,16 @@ REPOSITORY MAP:
 FILES ALREADY INSPECTED:
 {inspected_summary if inspected_summary else "(none yet)"}
 
+GIT HISTORY CHECKED:
+{history_summary if history_summary else "(none yet)"}
+
 Based on everything above, form your best hypothesis: which file is most likely
 to contain the bug, and how confident are you? If you've already inspected the
 right file and are confident, say so. If not, name a NEW file to inspect next.
+
+If you'd benefit from seeing a file's recent commit history (e.g. to check if
+this was fixed before, or to understand why the code looks the way it does),
+set check_history to true.
 
 IMPORTANT: your confidence should reflect what you've actually verified by
 reading real file content above, not just plausible-sounding reasoning from
@@ -76,6 +90,7 @@ the issue description — inspect the most likely file first."""
             "hypothesis": result.reasoning,
             "target_file": result.target_file,
             "confidence": result.confidence,
+            "check_history": result.check_history,
             "iteration": next_iteration,
             "history": state["history"] + [f"iteration {next_iteration}: {result.reasoning}"],
         }
@@ -96,6 +111,19 @@ def make_inspect_file_node(sandbox: Sandbox) -> Any:
     return inspect_file
 
 
+def make_check_history_node(sandbox: Sandbox) -> Any:
+    def check_history(state: InvestigationState) -> dict[str, Any]:
+        path = state["target_file"]
+        log = sandbox.git_log_for_file(path, limit=5)
+
+        new_histories = dict(state["file_histories"])
+        new_histories[path] = log if log else "(no history found)"
+
+        return {"file_histories": new_histories}
+
+    return check_history
+
+
 def should_continue(state: InvestigationState) -> str:
     # Never allow ending on iteration 1 — force at least one real file
     # inspection before we trust any confidence score. A confidence
@@ -103,6 +131,8 @@ def should_continue(state: InvestigationState) -> str:
     # is not evidence, it's just more unverified text.
     if state["iteration"] < 1 or not state["inspected_files"]:
         return "inspect_file"
+    if state["check_history"] and state["target_file"] not in state["file_histories"]:
+        return "check_history"
     if state["confidence"] >= CONFIDENCE_THRESHOLD:
         return "end"
     if state["iteration"] >= MAX_ITERATIONS:
@@ -114,11 +144,15 @@ def build_investigator_graph(sandbox: Sandbox) -> Any:
     graph = StateGraph(InvestigationState)
     graph.add_node("form_hypothesis", make_form_hypothesis_node())
     graph.add_node("inspect_file", make_inspect_file_node(sandbox))
+    graph.add_node("check_history", make_check_history_node(sandbox))
 
     graph.set_entry_point("form_hypothesis")
     graph.add_conditional_edges(
-        "form_hypothesis", should_continue, {"inspect_file": "inspect_file", "end": END}
+        "form_hypothesis",
+        should_continue,
+        {"inspect_file": "inspect_file", "check_history": "check_history", "end": END},
     )
     graph.add_edge("inspect_file", "form_hypothesis")
+    graph.add_edge("check_history", "form_hypothesis")
 
     return graph.compile()

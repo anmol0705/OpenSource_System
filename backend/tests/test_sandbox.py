@@ -37,7 +37,7 @@ def test_create_sandbox_clones_repo_successfully(mock_from_env: MagicMock) -> No
     # Confirm the clone command actually contains the URL we asked for —
     # catches typos/bugs in how we build the git clone command.
     fake_container.exec_run.assert_any_call(
-        cmd=["sh", "-c", "git clone --depth 1 https://github.com/example/repo.git /workspace/repo"],
+        cmd=["sh", "-c", "git clone https://github.com/example/repo.git /workspace/repo"],
         workdir="/workspace",
     )
 

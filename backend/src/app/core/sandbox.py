@@ -86,6 +86,29 @@ class Sandbox:
             return []
         return [line for line in output.strip().split("\n") if line]
 
+    def git_log_for_file(self, path: str, limit: int = 10) -> str:
+        """Recent commit history touching a specific file — shows HOW
+        this repo has evolved this particular piece of code over time,
+        not just what it looks like right now.
+        """
+        exit_code, output = self.run(f"git log -n {limit} --oneline --follow -- {path!r}")
+        return output if exit_code == 0 else ""
+
+    def git_blame(self, path: str) -> str:
+        """Line-by-line: who last touched each line, and in which commit.
+        Useful for finding the commit message/reasoning behind a
+        specific piece of logic, not just that it exists.
+        """
+        exit_code, output = self.run(f"git blame --line-porcelain {path!r}")
+        return output if exit_code == 0 else ""
+
+    def git_show_commit(self, commit_hash: str) -> str:
+        """The full diff + message for one specific commit — used once
+        git_log_for_file surfaces a commit worth actually reading in full.
+        """
+        exit_code, output = self.run(f"git show {commit_hash}")
+        return output if exit_code == 0 else ""
+
 
 class SandboxManager:
     """Creates and tracks isolated Sandbox instances. This is the ONLY
@@ -122,8 +145,9 @@ class SandboxManager:
         sandbox = Sandbox(workspace_id, host_path, container)
 
         clone_exit, clone_output = sandbox.run(
-            f"git clone --depth 1 {repo_clone_url} /workspace/repo", workdir="/workspace"
+            f"git clone {repo_clone_url} /workspace/repo", workdir="/workspace"
         )
+
         if clone_exit != 0:
             sandbox.destroy()
             raise RuntimeError(f"git clone failed: {clone_output}")

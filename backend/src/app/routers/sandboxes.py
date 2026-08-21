@@ -95,6 +95,8 @@ async def investigate(
         "confidence": 0.0,
         "iteration": 0,
         "history": [],
+        "file_histories": {},
+        "check_history": False,
     }
 
     result = graph.invoke(initial_state)
