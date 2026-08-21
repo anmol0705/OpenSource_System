@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from app.core.config import get_settings
 
@@ -37,14 +38,14 @@ def get_llm(tier: ModelTier, max_tokens: int = 1024) -> ChatOpenAI:
     if tier == ModelTier.FREE:
         return ChatOpenAI(
             model=model_name,
-            api_key=settings.groq_api_key,
+            api_key=SecretStr(settings.groq_api_key),
             base_url=GROQ_BASE_URL,
             max_completion_tokens=max_tokens,
         )
 
     return ChatOpenAI(
         model=model_name,
-        api_key=settings.openrouter_api_key,
+        api_key=SecretStr(settings.openrouter_api_key),
         base_url=OPENROUTER_BASE_URL,
         max_completion_tokens=max_tokens,
     )
