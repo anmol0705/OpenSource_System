@@ -6,9 +6,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.llm_router import ModelTier, get_llm
 from app.core.sandbox import Sandbox
-
-CONFIDENCE_THRESHOLD = 0.75
-MAX_ITERATIONS = 5
+from app.core.settings_tuning import (
+    INVESTIGATION_CONFIDENCE_THRESHOLD,
+    MAX_INVESTIGATION_ITERATIONS,
+)
 
 
 class Hypothesis(BaseModel):
@@ -133,9 +134,9 @@ def should_continue(state: InvestigationState) -> str:
         return "inspect_file"
     if state["check_history"] and state["target_file"] not in state["file_histories"]:
         return "check_history"
-    if state["confidence"] >= CONFIDENCE_THRESHOLD:
+    if state["confidence"] >= INVESTIGATION_CONFIDENCE_THRESHOLD:
         return "end"
-    if state["iteration"] >= MAX_ITERATIONS:
+    if state["iteration"] >= MAX_INVESTIGATION_ITERATIONS:
         return "end"
     return "inspect_file"
 

@@ -2,6 +2,7 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Any
 
 import docker
 from docker.models.containers import Container
@@ -125,6 +126,18 @@ class SandboxManager:
         # persist workspace state properly once the agent has real
         # investigation state to track across a longer-running session.
         self._active_sandboxes: dict[uuid.UUID, Sandbox] = {}
+        # In-memory mentor session state: session_id -> MentorState dict.
+        # Same known limitation as _active_sandboxes — lost on restart.
+        # A Phase 10 hardening pass would move this to Postgres, since
+        # unlike a sandbox (disposable), a mentoring session represents
+        # real human learning progress worth actually persisting.
+        self._mentor_sessions: dict[uuid.UUID, dict[str, Any]] = {}
+
+    def save_mentor_session(self, session_id: uuid.UUID, state: dict[str, Any]) -> None:
+        self._mentor_sessions[session_id] = state
+
+    def get_mentor_session(self, session_id: uuid.UUID) -> dict[str, Any] | None:
+        return self._mentor_sessions.get(session_id)
 
     def create(self, repo_clone_url: str) -> Sandbox:
         workspace_id = uuid.uuid4()
