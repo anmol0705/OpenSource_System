@@ -1,0 +1,109 @@
+Traceback (most recent call last):
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\src\app\core\investigator.py", line 47, in invoke_with_retry
+    return cast(Hypothesis, structured_llm.invoke(prompt))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 3456, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 6014, in invoke
+    return self.bound.invoke(
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 5323, in invoke
+    return self._call_with_config(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 2301, in _call_with_config
+    context.run(
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\config.py", line 526, in call_func_with_variable_args
+    return func(input, **kwargs)  # type: ignore[call-arg]
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\base.py", line 5180, in _invoke
+    output = call_func_with_variable_args(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_core\runnables\config.py", line 526, in call_func_with_variable_args
+    return func(input, **kwargs)  # type: ignore[call-arg]
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langchain_openai\chat_models\base.py", line 4326, in _oai_structured_outputs_parser
+    raise ValueError(msg)
+ValueError: Structured Output response does not have a 'parsed' field nor a 'refusal' field. Received message:
+
+content='' additional_kwargs={'parsed': None, 'refusal': None} response_metadata={'token_usage': {'completion_tokens': 337, 'prompt_tokens': 273, 'total_tokens': 610, 'completion_tokens_details': {'accepted_prediction_tokens': None, 'audio_tokens': 0, 'reasoning_tokens': 372, 'rejected_prediction_tokens': None, 'text_tokens': None, 'image_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cache_write_tokens': 0, 'cached_tokens': 256, 'image_tokens': None, 'text_tokens': None, 'video_tokens': 0}, 'cost': 0.00123321, 'is_byok': False, 'cost_details': {'upstream_inference_cost': 0.00123321, 'upstream_inference_prompt_cost': 5.371e-05, 'upstream_inference_completions_cost': 0.0011795}}, 'model_provider': 'openai', 'model_name': 'moonshotai/kimi-k2.7-code', 'system_fingerprint': None, 'id': 'gen-1787935245-YU4iI7lQsR16QJ3MxXjl', 'finish_reason': 'stop', 'logprobs': None} id='lc_run--01a0493e-c448-7b83-be8c-08028b760ef9-0' tool_calls=[] invalid_tool_calls=[] usage_metadata={'input_tokens': 273, 'output_tokens': 337, 'total_tokens': 610, 'input_token_details': {'audio': 0, 'cache_read': 256, 'cache_creation': 0}, 'output_token_details': {'audio': 0, 'reasoning': 372}}
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\routing.py", line 670, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 2734, in app
+    await route.handle(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 1780, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 2789, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 1800, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 1279, in handle
+    await app(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 158, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 144, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 706, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\fastapi\routing.py", line 352, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\src\app\routers\sandboxes.py", line 141, in investigate
+    result = graph.invoke(initial_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langgraph\pregel\main.py", line 3913, in invoke
+    for chunk in self.stream(
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langgraph\pregel\main.py", line 2967, in stream
+    for _ in runner.tick(
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langgraph\pregel\_runner.py", line 207, in tick
+    run_with_retry(
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langgraph\pregel\_retry.py", line 617, in run_with_retry
+    return task.proc.invoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 707, in invoke
+    input = context.run(step.invoke, input, config, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 447, in invoke
+    ret = self.func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\src\app\core\investigator.py", line 87, in form_hypothesis
+    result = invoke_with_retry(prompt)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\tenacity\__init__.py", line 331, in wrapped_f
+    return copy(f, *args, **kw)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\enterprise-support-agent\backend\.venv\Lib\site-packages\tenacity\__init__.py", line 414, in exc_check
+    raise retry_exc from fut.exception()
+tenacity.RetryError: RetryError[<Future at 0x16137935e10 state=finished raised ValueError>]
+During task with name 'form_hypothesis' and id '7787a789-7560-86eb-46f3-dae81932fdf1'

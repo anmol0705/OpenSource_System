@@ -6,9 +6,11 @@ from pydantic import BaseModel
 
 from app.core.code_analysis import build_repository_map
 from app.core.cost_tracker import RunCostTracker
+from app.core.github_client import get_github_client
 from app.core.implementer import ImplementationState, build_implementation_graph
 from app.core.investigator import InvestigationState, build_investigator_graph
 from app.core.mentor import MentorState, build_mentor_resume_graph, build_mentor_start_graph
+from app.core.pr_manager import PRManagerState, build_pr_manager_graph
 from app.core.sandbox import SandboxManager, get_sandbox_manager
 
 router = APIRouter(prefix="/sandboxes", tags=["sandboxes"])
@@ -46,6 +48,19 @@ class StartMentorRequest(BaseModel):
 
 class SubmitAttemptRequest(BaseModel):
     human_attempt: str
+
+
+class StartPRRequest(BaseModel):
+    repo_full_name: str
+    branch_name: str
+    target_file: str
+    final_content: str
+    commit_message: str
+    pr_title: str
+    pr_body: str
+    test_command: str
+    issue_title: str
+    issue_body: str
 
 
 @router.post("")
@@ -131,6 +146,8 @@ async def investigate(
         "confidence": result["confidence"],
         "iterations": result["iteration"],
         "files_inspected": list(result["inspected_files"].keys()),
+        "history": result["history"],
+        "files_with_history_checked": list(result["file_histories"].keys()),
     }
 
 
@@ -264,3 +281,91 @@ async def submit_mentor_attempt(
         "hint": result["hints_given"][-1] if result["hints_given"] else None,
         "hint_count": result["hint_count"],
     }
+
+
+@router.post("/{workspace_id}/pr/request-approval")
+async def request_pr_approval(
+    workspace_id: uuid.UUID,
+    payload: StartPRRequest,
+    manager: Annotated[SandboxManager, Depends(get_sandbox_manager)],
+) -> dict[str, Any]:
+    sandbox = manager.get(workspace_id)
+    if sandbox is None:
+        raise HTTPException(status_code=404, detail="Sandbox not found")
+
+    github = get_github_client()
+    graph = build_pr_manager_graph(sandbox, github)
+
+    initial_state: PRManagerState = {
+        "repo_full_name": payload.repo_full_name,
+        "branch_name": payload.branch_name,
+        "target_file": payload.target_file,
+        "final_content": payload.final_content,
+        "commit_message": payload.commit_message,
+        "pr_title": payload.pr_title,
+        "pr_body": payload.pr_body,
+        "pr_number": None,
+        "status": "",
+        "human_approved": False,
+        "latest_comments": [],
+        "test_command": payload.test_command,
+        "issue_title": payload.issue_title,
+        "issue_body": payload.issue_body,
+    }
+
+    # push_and_create_pr is genuinely async (GitHubClient is httpx.AsyncClient
+    # -based), so this graph must be run via ainvoke — a sync invoke() raises
+    # TypeError the moment routing reaches that node (see pr_manager tests).
+    # human_approved starts False here, so this particular call never reaches
+    # it, but /pr/{session_id}/approve below does — both must use ainvoke.
+    result = await graph.ainvoke(initial_state)
+
+    session_id = uuid.uuid4()
+    result_with_workspace = dict(result)
+    result_with_workspace["_workspace_id"] = str(workspace_id)
+    manager.save_mentor_session(session_id, result_with_workspace)
+
+    return {"session_id": str(session_id), "status": result["status"]}
+
+
+@router.post("/pr/{session_id}/approve")
+async def approve_pr(
+    session_id: uuid.UUID,
+    manager: Annotated[SandboxManager, Depends(get_sandbox_manager)],
+) -> dict[str, Any]:
+    session = manager.get_mentor_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="PR session not found")
+
+    workspace_id = uuid.UUID(session["_workspace_id"])
+    sandbox = manager.get(workspace_id)
+    if sandbox is None:
+        raise HTTPException(status_code=404, detail="Underlying sandbox no longer exists")
+
+    github = get_github_client()
+    graph = build_pr_manager_graph(sandbox, github)
+
+    state: PRManagerState = {
+        "repo_full_name": session["repo_full_name"],
+        "branch_name": session["branch_name"],
+        "target_file": session["target_file"],
+        "final_content": session["final_content"],
+        "commit_message": session["commit_message"],
+        "pr_title": session["pr_title"],
+        "pr_body": session["pr_body"],
+        "pr_number": session["pr_number"],
+        "status": session["status"],
+        "human_approved": True,
+        "latest_comments": session["latest_comments"],
+        "test_command": session["test_command"],
+        "issue_title": session["issue_title"],
+        "issue_body": session["issue_body"],
+    }
+
+    result = await graph.ainvoke(state)
+
+    result_with_workspace = dict(result)
+    result_with_workspace["_workspace_id"] = str(workspace_id)
+    manager.save_mentor_session(session_id, result_with_workspace)
+
+    return {"status": result["status"], "pr_number": result.get("pr_number")}

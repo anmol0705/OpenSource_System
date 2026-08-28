@@ -40,7 +40,58 @@ class GitHubClient:
     async def close(self) -> None:
         await self._client.aclose()
 
+    async def create_branch(
+        self, full_name: str, branch_name: str, base_branch: str = "main"
+    ) -> None:
+        base_ref = await self._client.get(f"/repos/{full_name}/git/ref/heads/{base_branch}")
+        base_ref.raise_for_status()
+        base_sha = base_ref.json()["object"]["sha"]
+
+        response = await self._client.post(
+            f"/repos/{full_name}/git/refs",
+            json={"ref": f"refs/heads/{branch_name}", "sha": base_sha},
+        )
+        response.raise_for_status()
+
+    async def create_pull_request(
+        self, full_name: str, title: str, body: str, head_branch: str, base_branch: str = "main"
+    ) -> dict[str, Any]:
+        response = await self._client.post(
+            f"/repos/{full_name}/pulls",
+            json={"title": title, "body": body, "head": head_branch, "base": base_branch},
+        )
+        response.raise_for_status()
+        result: dict[str, Any] = response.json()
+        return result
+
+    async def get_pull_request_status(self, full_name: str, pr_number: int) -> dict[str, Any]:
+        response = await self._client.get(f"/repos/{full_name}/pulls/{pr_number}")
+        response.raise_for_status()
+        result: dict[str, Any] = response.json()
+        return result
+
+    async def list_pull_request_comments(
+        self, full_name: str, pr_number: int
+    ) -> list[dict[str, Any]]:
+        response = await self._client.get(f"/repos/{full_name}/issues/{pr_number}/comments")
+        response.raise_for_status()
+        result: list[dict[str, Any]] = response.json()
+        return result
+
+    async def create_or_update_file(
+        self, full_name: str, path: str, content: str, message: str, branch: str
+    ) -> None:
+        import base64
+
+        encoded_content = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+
+        response = await self._client.put(
+            f"/repos/{full_name}/contents/{path}",
+            json={"message": message, "content": encoded_content, "branch": branch},
+        )
+        response.raise_for_status()
+
 
 def get_github_client() -> GitHubClient:
     settings = get_settings()
-    return GitHubClient(token=settings.github_token)
+    return GitHubClient(token=settings.github_write_token)

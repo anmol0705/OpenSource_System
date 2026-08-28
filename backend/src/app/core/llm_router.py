@@ -25,9 +25,9 @@ class ModelTier(StrEnum):
 # Update these against each provider's live model list before relying on
 # them — availability and naming both change over time.
 TIER_MODELS: dict[ModelTier, str] = {
-    ModelTier.FREE: "openai/gpt-oss-120b",
+    ModelTier.FREE: "openai/gpt-oss-120b",  # via Groq, see get_llm's branch
     ModelTier.FAST: "z-ai/glm-5.2",
-    ModelTier.CAPABLE: "moonshotai/kimi-k2.7-code",
+    ModelTier.CAPABLE: "z-ai/glm-5.2",  # promoted from Kimi K2.7 Code — see note below
 }
 
 

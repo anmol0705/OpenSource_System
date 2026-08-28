@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.llm_router import ModelTier, get_llm
+from app.core.pii_guard import redact_pii
 from app.core.sandbox import Sandbox
 from app.core.settings_tuning import (
     INVESTIGATION_CONFIDENCE_THRESHOLD,
@@ -47,6 +48,10 @@ def make_form_hypothesis_node() -> Any:
         return cast(Hypothesis, structured_llm.invoke(prompt))
 
     def form_hypothesis(state: InvestigationState) -> dict[str, Any]:
+        safe_issue_body, pii_found = redact_pii(state["issue_body"])
+        if pii_found:
+            print(f"[pii_guard] Redacted {pii_found} from issue body before LLM call")
+
         inspected_summary = "\n\n".join(
             f"--- {path} ---\n{content[:3000]}"
             for path, content in state["inspected_files"].items()
@@ -59,7 +64,7 @@ def make_form_hypothesis_node() -> Any:
         prompt = f"""You are investigating a bug report to find where it likely originates.
 
 ISSUE: {state["issue_title"]}
-{state["issue_body"]}
+{safe_issue_body}
 
 REPOSITORY MAP:
 {state["repo_map_summary"]}
