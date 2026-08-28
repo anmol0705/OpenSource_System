@@ -1,11 +1,11 @@
 from typing import Any, TypedDict, cast
 
 from langgraph.graph import END, StateGraph
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from app.core.guardrails import run_before_hooks
 from app.core.llm_router import ModelTier, get_llm
-from app.core.pii_guard import redact_pii
 from app.core.sandbox import Sandbox
 from app.core.settings_tuning import (
     INVESTIGATION_CONFIDENCE_THRESHOLD,
@@ -16,13 +16,28 @@ from app.core.settings_tuning import (
 class Hypothesis(BaseModel):
     reasoning: str = Field(description="Brief explanation of your current thinking")
     target_file: str = Field(description="The single file path most likely to contain the bug")
-    confidence: float = Field(description="0.0 to 1.0 — how confident you are this is correct")
+    confidence: float = Field(
+        description="0.0 to 1.0 — how confident you are this is correct. MUST be a decimal "
+        "fraction, e.g. 0.75, never a percentage like 75 or 75.0."
+    )
     check_history: bool = Field(
         default=False,
         description="Set true if seeing this file's commit history would help you form a "
         "better hypothesis — e.g. if the current code looks intentional/unusual and you "
         "want to know WHY it's written this way, or whether this bug was fixed before.",
     )
+
+    @field_validator("confidence")
+    @classmethod
+    def validate_confidence_range(cls, v: float) -> float:
+        if v > 1.0:
+            # Model likely returned a percentage (e.g. 30.0 meaning 30%)
+            # instead of a 0-1 fraction — normalize rather than silently
+            # accept an out-of-range value that would corrupt threshold
+            # comparisons downstream. Confirmed real: GLM-5.2 did exactly
+            # this during Phase 10 verification testing.
+            return v / 100.0
+        return max(0.0, min(1.0, v))
 
 
 class InvestigationState(TypedDict):
@@ -48,9 +63,9 @@ def make_form_hypothesis_node() -> Any:
         return cast(Hypothesis, structured_llm.invoke(prompt))
 
     def form_hypothesis(state: InvestigationState) -> dict[str, Any]:
-        safe_issue_body, pii_found = redact_pii(state["issue_body"])
-        if pii_found:
-            print(f"[pii_guard] Redacted {pii_found} from issue body before LLM call")
+        safe_issue_body, hook_notes = run_before_hooks(state["issue_body"])
+        if hook_notes:
+            print(f"[guardrails] {hook_notes}")
 
         inspected_summary = "\n\n".join(
             f"--- {path} ---\n{content[:3000]}"

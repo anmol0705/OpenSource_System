@@ -82,3 +82,19 @@ def test_investigator_forces_at_least_one_inspection(mock_get_llm: MagicMock) ->
 
     assert len(result["inspected_files"]) >= 1
     assert "app.py" in result["inspected_files"]
+
+
+def test_hypothesis_normalizes_percentage_scale_confidence() -> None:
+    """Regression test for a real bug caught during Phase 10 verification:
+    GLM-5.2 returned confidence=30.0 (meaning 30%) instead of 0.3, which
+    silently satisfied the 0.75 threshold and stopped the loop falsely
+    early. This must be caught and corrected, not just documented in a
+    prompt description.
+    """
+    h = Hypothesis(reasoning="test", target_file="app.py", confidence=30.0)
+    assert h.confidence == 0.3
+
+
+def test_hypothesis_clamps_confidence_within_normal_range() -> None:
+    h = Hypothesis(reasoning="test", target_file="app.py", confidence=0.6)
+    assert h.confidence == 0.6
